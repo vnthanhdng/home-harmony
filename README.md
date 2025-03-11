@@ -84,3 +84,30 @@ A task management application designed for families and roommates to coordinate 
    # From the root directory
    npm run dev
    ```
+
+
+### Component Diagram
+```
+┌─────────────────┐      ┌─────────────────────────────────┐
+│                 │      │                                 │
+│  React Client   │◄────►│  Express API Server             │
+│  (TypeScript)   │      │  (TypeScript)                   │
+│                 │      │                                 │
+└─────────────────┘      └───────────────┬─────────────────┘
+                                         │
+                                         ▼
+┌─────────────────┐      ┌─────────────────────────────────┐
+│                 │      │                                 │
+│  AWS S3 Storage │◄────►│  Prisma ORM                     │
+│  (Media Files)  │      │                                 │
+│                 │      │                                 │
+└─────────────────┘      └───────────────┬─────────────────┘
+                                         │
+                                         ▼
+                         ┌─────────────────────────────────┐
+                         │                                 │
+                         │  PostgreSQL Database (AWS RDS)  │
+                         │                                 │
+                         └─────────────────────────────────┘
+
+```
