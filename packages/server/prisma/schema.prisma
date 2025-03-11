@@ -1,0 +1,85 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  phone      String?  @unique
+  username   String   @unique
+  password   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  units      UnitMember[]
+  tasks      Task[]    @relation("TaskCreator")
+  assignedTasks Task[] @relation("TaskAssignee")
+}
+
+model Unit {
+  id          String   @id @default(cuid())
+  name        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     UnitMember[]
+  tasks       Task[]
+}
+
+model UnitMember {
+  id          String   @id @default(cuid())
+  role        String   // admin, member
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+  unit        Unit     @relation(fields: [unitId], references: [id])
+  unitId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, unitId])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  status      String   // pending, inProgress, completed
+  dueDate     DateTime?
+  // Update to handle both media types
+  completionMedia MediaItem[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  creator     User     @relation("TaskCreator", fields: [creatorId], references: [id])
+  creatorId   String
+  assignee    User?    @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  assigneeId  String?
+  unit        Unit     @relation(fields: [unitId], references: [id])
+  unitId      String
+}
+
+// New model for media items
+model MediaItem {
+  id        String   @id @default(cuid())
+  url       String
+  type      String   // "image" or "video"
+  filename  String
+  mimeType  String
+  size      Int
+  createdAt DateTime @default(now())
+  
+  // Relation to task
+  task      Task     @relation(fields: [taskId], references: [id])
+  taskId    String
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  content     String
+  createdAt   DateTime @default(now())
+  senderId    String
+  unitId      String
+}
