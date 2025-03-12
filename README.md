@@ -53,8 +53,8 @@ A task management application designed for families and roommates to coordinate 
 
 1. Clone the repository
    ```bash
-   git clone https://github.com/your-username/home-team.git
-   cd home-team
+   git clone https://github.com/your-username/home-harmony.git
+   cd home-harmony
    ```
 
 2. Install dependencies
@@ -65,7 +65,7 @@ A task management application designed for families and roommates to coordinate 
 3. Set up environment variables
    Create a `.env` file in the server directory:
    ```
-   DATABASE_URL="postgresql://username:password@localhost:5432/hometeam"
+   DATABASE_URL="postgresql://username:password@localhost:5432/homeharmony_db"
    JWT_SECRET="your-secret-key"
    AWS_REGION="your-region"
    AWS_ACCESS_KEY_ID="your-access-key"
