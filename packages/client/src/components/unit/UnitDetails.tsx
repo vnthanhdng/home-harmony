@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import unitService, { UnitMember } from '../../services/unitService';
-import InviteMemberModal from './InviteMemberModal';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import unitService, { UnitMember } from "../../services/unitService";
+import InviteMemberModal from "./InviteMemberModal";
+import authService from "../../services/authService";
 
 const UnitDetails: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
@@ -10,70 +11,135 @@ const UnitDetails: React.FC = () => {
   const queryClient = useQueryClient();
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
-  const [unitName, setUnitName] = useState('');
+  const [unitName, setUnitName] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
+  console.log("Current invite modal state:", isInviteModalOpen);
+
+
   // Fetch unit details
-  const { data: unit, isLoading, error } = useQuery({
-    queryKey: ['unitDetails', unitId],
-    queryFn: () => unitId ? unitService.getUnitDetails(unitId) : Promise.reject('No unit ID'),
+  const {
+    data: unit,
+    isLoading,
+    error,
+  } = useQuery<Unit>({
+    queryKey: ["unitDetails", unitId],
+    queryFn: () =>
+      unitId
+        ? unitService.getUnitDetails(unitId)
+        : Promise.reject("No unit ID"),
     onSuccess: (data) => {
       setUnitName(data.name);
-      
+
       // Get current user ID from localStorage or your auth context
-      const userId = localStorage.getItem('userId'); // Replace with your auth method
+      const userId = localStorage.getItem("userId"); // Replace with your auth method
       setCurrentUserId(userId);
-    }
+    },
   });
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const user = await authService.getCurrentUser();
+        setCurrentUserId(user.id);
+        console.log("Current user ID from API:", user.id);
+      } catch (error) {
+        console.error("Error fetching current user:", error);
+        // Fallback to localStorage if API request fails
+        const userId = localStorage.getItem("userId");
+        console.log("Fallback: userId from localStorage:", userId);
+        setCurrentUserId(userId);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
+
+
 
   // Update unit name mutation
   const updateUnitMutation = useMutation({
-    mutationFn: ({ id, name }: { id: string; name: string }) => 
+    mutationFn: ({ id, name }: { id: string; name: string }) =>
       unitService.updateUnit(id, name),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unitDetails', unitId] });
+      queryClient.invalidateQueries({ queryKey: ["unitDetails", unitId] });
       setEditingName(false);
-    }
+    },
   });
 
   // Delete unit mutation
   const deleteUnitMutation = useMutation({
     mutationFn: unitService.deleteUnit,
     onSuccess: () => {
-      navigate('/units');
-    }
+      navigate("/units");
+    },
   });
 
   // Remove member mutation
   const removeMemberMutation = useMutation({
-    mutationFn: ({ unitId, memberId }: { unitId: string; memberId: string }) => 
+    mutationFn: ({ unitId, memberId }: { unitId: string; memberId: string }) =>
       unitService.removeMember(unitId, memberId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unitDetails', unitId] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["unitDetails", unitId] });
+    },
   });
-  
+
   // Update member role mutation
   const updateRoleMutation = useMutation({
-    mutationFn: ({ unitId, memberId, role }: { unitId: string; memberId: string; role: string }) => 
-      unitService.updateMemberRole(unitId, memberId, role),
+    mutationFn: ({
+      unitId,
+      memberId,
+      role,
+    }: {
+      unitId: string;
+      memberId: string;
+      role: string;
+    }) => unitService.updateMemberRole(unitId, memberId, role),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['unitDetails', unitId] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["unitDetails", unitId] });
+    },
   });
 
   // Check if current user is admin
-  const isAdmin = unit?.members.some(
-    member => member.user?.id === currentUserId && member.role === 'admin'
-  );
+//   const isAdmin = true;
+//   unit?.members.some(
+//     (member) => member.user?.id === currentUserId && member.role === "admin"
+//   );
+const isAdmin = React.useMemo(() => {
+    if (!unit || !currentUserId) {
+      console.log("isAdmin check failed: missing unit or userId");
+      return false;
+    }
+    
+    console.log("Checking isAdmin with currentUserId:", currentUserId);
+    console.log("Unit members:", unit .members);
+    
+    const adminStatus = unit.members.some(member => {
+      const memberUserId = member.user?.id;
+      const isMatch = memberUserId === currentUserId;
+      const isAdminRole = member.role === "admin";
+      
+      console.log(
+        `Member ${member.user?.username} (${memberUserId}): ` + 
+        `Match with current user? ${isMatch}, ` + 
+        `Admin role? ${isAdminRole}`
+      );
+      
+      return isMatch && isAdminRole;
+    });
+    
+    console.log("Final isAdmin status:", adminStatus);
+    return adminStatus;
+  }, [unit, currentUserId]);
 
   if (isLoading) return <div className="text-center py-8">Loading...</div>;
-  
-  if (error || !unit) return (
-    <div className="text-center py-8 text-red-600">
-      Error loading unit details. Please try again.
-    </div>
-  );
+
+  if (error || !unit)
+    return (
+      <div className="text-center py-8 text-red-600">
+        Error loading unit details. Please try again.
+      </div>
+    );
 
   const handleSaveUnitName = () => {
     if (unitId && unitName.trim()) {
@@ -82,13 +148,21 @@ const UnitDetails: React.FC = () => {
   };
 
   const handleDeleteUnit = () => {
-    if (unitId && window.confirm('Are you sure you want to delete this household? This action cannot be undone.')) {
+    if (
+      unitId &&
+      window.confirm(
+        "Are you sure you want to delete this household? This action cannot be undone."
+      )
+    ) {
       deleteUnitMutation.mutate(unitId);
     }
   };
 
   const handleRemoveMember = (memberId: string) => {
-    if (unitId && window.confirm('Are you sure you want to remove this member?')) {
+    if (
+      unitId &&
+      window.confirm("Are you sure you want to remove this member?")
+    ) {
       removeMemberMutation.mutate({ unitId, memberId });
     }
   };
@@ -100,7 +174,9 @@ const UnitDetails: React.FC = () => {
   };
 
   // Filter only active members
-  const activeMembers = unit.members.filter(member => member.status === 'active');
+  const activeMembers = unit.members.filter(
+    (member) => member.status === "active"
+  );
 
   return (
     <div className="container mx-auto p-4">
@@ -149,7 +225,10 @@ const UnitDetails: React.FC = () => {
           {isAdmin && (
             <div className="flex space-x-3">
               <button
-                onClick={() => setIsInviteModalOpen(true)}
+                onClick={() => {console.log("Invite button clicked");
+                    console.log(isAdmin);
+                    setIsInviteModalOpen(true);
+                }}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
               >
                 Invite Member
@@ -168,23 +247,37 @@ const UnitDetails: React.FC = () => {
 
       {/* Members Section */}
       <div className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Members ({activeMembers.length})</h2>
-        
+        <h2 className="text-xl font-semibold mb-4">
+          Members ({activeMembers.length})
+        </h2>
+
         <div className="bg-white shadow overflow-hidden sm:rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   User
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Role
                 </th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
                   Joined
                 </th>
                 {isAdmin && (
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th
+                    scope="col"
+                    className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
                     Actions
                   </th>
                 )}
@@ -212,7 +305,9 @@ const UnitDetails: React.FC = () => {
                     {isAdmin && member.user?.id !== currentUserId ? (
                       <select
                         value={member.role}
-                        onChange={(e) => handleUpdateRole(member.id, e.target.value)}
+                        onChange={(e) =>
+                          handleUpdateRole(member.id, e.target.value)
+                        }
                         className="border rounded px-2 py-1 text-sm"
                       >
                         <option value="member">Member</option>
@@ -275,12 +370,14 @@ const UnitDetails: React.FC = () => {
       <InviteMemberModal
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
-        unitId={unitId || ''}
+        unitId={unitId || ""}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['unitDetails', unitId] });
+          queryClient.invalidateQueries({ queryKey: ["unitDetails", unitId] });
           setIsInviteModalOpen(false);
         }}
       />
+
+     
     </div>
   );
 };

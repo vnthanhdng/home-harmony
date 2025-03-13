@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { API_URL } from '../config';
+import axios from "axios";
+import { API_URL } from "../config";
 
 // Types
 export interface User {
@@ -36,34 +36,37 @@ const apiClient = axios.create({
 const authService = {
   // Register a new user
   register: async (data: RegisterData): Promise<User> => {
-    const response = await apiClient.post('/auth/register', data);
+    const response = await apiClient.post("/auth/register", data);
     return response.data.user;
   },
 
   // Login user
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
-    const response = await apiClient.post('/auth/login', credentials);
+    const response = await apiClient.post("/auth/login", credentials);
+    localStorage.setItem("token", response.data.token);
+    localStorage.setItem("userId", response.data.user.id);
+    localStorage.setItem("username", response.data.user.username);
     return response.data;
   },
 
   // Get current user
   getCurrentUser: async (): Promise<User> => {
     // Add token to request
-    const token = localStorage.getItem('token');
-    const response = await apiClient.get('/auth/me', {
+    const token = localStorage.getItem("token");
+    const response = await apiClient.get("/auth/me", {
       headers: {
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data.data;
   },
 
   // Logout
   logout: (): void => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('username');
-  }
+    localStorage.removeItem("token");
+    localStorage.removeItem("userId");
+    localStorage.removeItem("username");
+  },
 };
 
 export default authService;

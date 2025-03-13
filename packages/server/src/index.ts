@@ -3,6 +3,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import unitRoutes from './routes/unitRoutes';
+import memberRoutes from './routes/memberRoutes';
+import invitationRoutes from './routes/invitationRoutes';
 import authRoutes from './routes/authRoutes';
 import testRoutes from './routes/testRoutes';
 
@@ -30,6 +32,8 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/test', testRoutes);
 app.use('/api', unitRoutes);
+app.use('/api', memberRoutes);
+app.use('/api', invitationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
