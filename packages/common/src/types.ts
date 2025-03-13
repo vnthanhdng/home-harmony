@@ -23,6 +23,7 @@ export interface User {
     createdAt: string;
     updatedAt: string;
     user?: User;
+    status: 'pending' | 'active' | 'blocked';
   }
   
   export interface Task {

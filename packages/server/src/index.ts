@@ -1,97 +1,49 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
+// packages/server/src/index.ts
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import unitRoutes from './routes/unitRoutes';
+import authRoutes from './routes/authRoutes';
+import testRoutes from './routes/testRoutes';
 
-const prisma = new PrismaClient();
 
-// 3xtend the Request interface to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
+// Load environment variables
+dotenv.config();
 
-// middleware to verify JWT token
-export const authenticate = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    // get token from header
-    const authHeader = req.headers.authorization;
-    
-    if (!authHeader) {
-      return res.status(401).json({ message: 'No token provided' });
-    }
+// Create Express app
+const app = express();
+const PORT = process.env.PORT || 4000;
 
-    // check if bearer token
-    if (!authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'Invalid token format' });
-    }
+// Middleware
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true
+}));
+app.use(express.json());
 
-    const token = authHeader.split(' ')[1];
+// Public health check route
+app.get('/', (req, res) => {
+  res.send('HomeTeam API is running');
+});
 
-    // verify token
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || 'your-secret-key'
-    ) as { id: string };
+// API routes
+app.use('/api/auth', authRoutes);
+app.use('/api/test', testRoutes);
+app.use('/api', unitRoutes);
 
-    // find user
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        phone: true,
-        createdAt: true,
-        updatedAt: true
-      }
-    });
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    message: 'An unexpected error occurred',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
+});
 
-    if (!user) {
-      return res.status(401).json({ message: 'User not found' });
-    }
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log(`API available at http://localhost:${PORT}/api`);
+});
 
-    // add user to request
-    req.user = user;
-
-    // continue
-    next();
-  } catch (error) {
-    console.error('Authentication error:', error);
-    if ((error as Error).name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expired' });
-    }
-    if ((error as Error).name === 'JsonWebTokenError') {
-      return res.status(401).json({ message: 'Invalid token' });
-    }
-    return res.status(500).json({ message: 'Server error during authentication' });
-  }
-};
-
-// optional middleware to check if user is verified
-// in a real app, we would check if the user's email/phone is verified
-export const isVerified = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
- 
-    if (!req.user) {
-      return res.status(401).json({ message: 'Unauthorized' });
-    }
-
-    // In real case, we would check if the user is verified
-   
-    next();
-  } catch (error) {
-    console.error('Verification check error:', error);
-    return res.status(500).json({ message: 'Server error during verification check' });
-  }
-};
+export default app;

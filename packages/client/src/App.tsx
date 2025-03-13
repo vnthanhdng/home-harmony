@@ -1,31 +1,16 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
-
+import Layout from './components/layout/Layout';
+import Dashboard from './pages/Dashboard';
+import UnitList from './components/unit/UnitList';
+import UnitDetails from './components/unit/UnitDetails';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import NotFound from './pages/NotFound';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import AuthTest from './components/auth/AuthTest';
 
-// components for protected routes
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  
-  useEffect(() => {
-    // Check if user is authenticated
-    const token = localStorage.getItem('token');
-    setIsAuthenticated(!!token);
-  }, []);
-  
-  // Show loading while checking authentication
-  if (isAuthenticated === null) {
-    return <div>Loading...</div>;
-  }
-  
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
-};
-
-// create a new queryclient instance
+// Create a client
 const queryClient = new QueryClient();
 
 function App() {
@@ -33,18 +18,15 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } 
-          />
-          <Route path="*" element={<NotFound />} />
+          
+          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/units" element={<UnitList />} />
+            <Route path="/units/:unitId" element={<UnitDetails />} />
+          </Route>
         </Routes>
       </Router>
     </QueryClientProvider>

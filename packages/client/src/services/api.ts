@@ -5,7 +5,7 @@ class ApiClient {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
     
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -18,6 +18,7 @@ class ApiClient {
     this.client.interceptors.request.use(
       (config) => {
         const token = localStorage.getItem('token');
+        console.log('Token being used in request:', token);
         
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;

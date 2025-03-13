@@ -32,6 +32,7 @@ model Unit {
 model UnitMember {
   id          String   @id @default(cuid())
   role        String   // admin, member
+  status      String   @default("active") //active, pending, blocked
   user        User     @relation(fields: [userId], references: [id])
   userId      String
   unit        Unit     @relation(fields: [unitId], references: [id])
