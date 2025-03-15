@@ -1,5 +1,4 @@
 import apiClient from './api';
-import { API_URL } from '../config';
 
 // Types
 export interface Unit {
@@ -42,35 +41,31 @@ const unitService = {
   // Get all units for current user
   getUserUnits: async (): Promise<Unit[]> => {
     // Use apiClient instead of direct axios
-    const response = await apiClient.get('/units');
-    console.log('Token being used in request:', localStorage.getItem('token'));
-    console.log('API Response:', response); // Check the full response structure
-    console.log('Data property:', response.data); // Check data property
-    console.log('Data.data property:', response.data.data); // Check nested data
-    return response.data;
+    const response = await apiClient.get<{ data: Unit[] }>('/units');
+    return response.data || [];
   },
 
   // Get unit details including members
   getUnitDetails: async (unitId: string): Promise<UnitDetails> => {
-    const response = await apiClient.get(`/units/${unitId}`);
+    const response = await apiClient.get<{ data: UnitDetails }>(`/units/${unitId}`);
     return response.data;
   },
 
   // Create a new unit
   createUnit: async (name: string): Promise<Unit> => {
-    const response = await apiClient.post('/units', { name });
+    const response = await apiClient.post<{ data: Unit, message: string }>('/units', { name });
     return response.data;
   },
 
   // Update unit
   updateUnit: async (unitId: string, name: string): Promise<Unit> => {
-    const response = await apiClient.put(`/units/${unitId}`, { name });
+    const response = await apiClient.put<{ data: Unit, message: string }>(`/units/${unitId}`, { name });
     return response.data;
   },
 
   // Delete unit
   deleteUnit: async (unitId: string): Promise<void> => {
-    await apiClient.delete(`/units/${unitId}`);
+    await apiClient.delete<{ message: string }>(`/units/${unitId}`);
   },
 
   // Invite user to unit
@@ -79,7 +74,7 @@ const unitService = {
     email: string,
     role = 'member'
   ): Promise<UnitMember> => {
-    const response = await apiClient.post(
+    const response = await apiClient.post<{ data: UnitMember, message: string }>(
       `/units/${unitId}/members`, 
       { email, role }
     );
@@ -92,7 +87,7 @@ const unitService = {
     memberId: string,
     role: string
   ): Promise<UnitMember> => {
-    const response = await apiClient.put(
+    const response = await apiClient.put<{ data: UnitMember, message: string }>(
       `/units/${unitId}/members/${memberId}`,
       { role }
     );
@@ -101,18 +96,18 @@ const unitService = {
 
   // Remove member
   removeMember: async (unitId: string, memberId: string): Promise<void> => {
-    await apiClient.delete(`/units/${unitId}/members/${memberId}`);
+    await apiClient.delete<{ message: string }>(`/units/${unitId}/members/${memberId}`);
   },
 
   // Get invitations
   getInvitations: async (): Promise<UnitInvitation[]> => {
-    const response = await apiClient.get('/invitations');
-    return response.data;
+    const response = await apiClient.get<{ data: UnitInvitation[] }>('/invitations');
+    return response.data || [];
   },
 
   // Accept invitation
   acceptInvitation: async (invitationId: string): Promise<UnitMember> => {
-    const response = await apiClient.put(
+    const response = await apiClient.put<{ data: UnitMember, message: string }>(
       `/invitations/${invitationId}`,
       { accept: true }
     );
@@ -121,7 +116,7 @@ const unitService = {
 
   // Reject invitation
   rejectInvitation: async (invitationId: string): Promise<void> => {
-    await apiClient.put(
+    await apiClient.put<{ message: string }>(
       `/invitations/${invitationId}`,
       { accept: false }
     );

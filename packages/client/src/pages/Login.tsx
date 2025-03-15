@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import authService, { LoginCredentials } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 // Define form validation schema
 const loginSchema = z.object({
@@ -19,6 +20,7 @@ const Login: React.FC = () => {
   const location = useLocation();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
 
   // Get redirect path from location state or default to dashboard
   const from = (location.state as any)?.from?.pathname || '/dashboard';
@@ -41,13 +43,8 @@ const Login: React.FC = () => {
       setIsLoading(true);
       setLoginError(null);
 
-      // Make API request to login
-      const response = await authService.login(data);
-
-      // Store auth data in localStorage
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('userId', response.user.id);
-      localStorage.setItem('username', response.user.username || response.user.email);
+      // Use AuthContext login
+      await login(data.email, data.password);
 
       // Redirect to the page they were trying to access
       navigate(from, { replace: true });

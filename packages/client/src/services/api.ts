@@ -1,14 +1,13 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import { API_URL } from '../config';
+
 
 class ApiClient {
   private client: AxiosInstance;
-  private baseURL: string;
 
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
-    
     this.client = axios.create({
-      baseURL: this.baseURL,
+      baseURL: API_URL,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -38,7 +37,8 @@ class ApiClient {
           if (error.response.status === 401) {
             // clear the token and redirect to login
             localStorage.removeItem('token');
-            localStorage.removeItem('user');
+            localStorage.removeItem('username');
+            localStorage.removeItem('userId');
             
             // only redirect if we're not already on the login or register page
             const currentPath = window.location.pathname;

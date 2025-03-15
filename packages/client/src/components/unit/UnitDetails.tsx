@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import unitService, { UnitMember } from "../../services/unitService";
 import InviteMemberModal from "./InviteMemberModal";
 import authService from "../../services/authService";
+import { useAuth } from "../../context/AuthContext";
 
 const UnitDetails: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
@@ -12,7 +13,6 @@ const UnitDetails: React.FC = () => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [unitName, setUnitName] = useState("");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   console.log("Current invite modal state:", isInviteModalOpen);
 
@@ -30,30 +30,8 @@ const UnitDetails: React.FC = () => {
         : Promise.reject("No unit ID"),
     onSuccess: (data) => {
       setUnitName(data.name);
-
-      // Get current user ID from localStorage or your auth context
-      const userId = localStorage.getItem("userId"); // Replace with your auth method
-      setCurrentUserId(userId);
     },
   });
-
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const user = await authService.getCurrentUser();
-        setCurrentUserId(user.id);
-        console.log("Current user ID from API:", user.id);
-      } catch (error) {
-        console.error("Error fetching current user:", error);
-        // Fallback to localStorage if API request fails
-        const userId = localStorage.getItem("userId");
-        console.log("Fallback: userId from localStorage:", userId);
-        setCurrentUserId(userId);
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);
 
 
 
@@ -105,32 +83,9 @@ const UnitDetails: React.FC = () => {
 //   unit?.members.some(
 //     (member) => member.user?.id === currentUserId && member.role === "admin"
 //   );
-const isAdmin = React.useMemo(() => {
-    if (!unit || !currentUserId) {
-      console.log("isAdmin check failed: missing unit or userId");
-      return false;
-    }
-    
-    console.log("Checking isAdmin with currentUserId:", currentUserId);
-    console.log("Unit members:", unit .members);
-    
-    const adminStatus = unit.members.some(member => {
-      const memberUserId = member.user?.id;
-      const isMatch = memberUserId === currentUserId;
-      const isAdminRole = member.role === "admin";
-      
-      console.log(
-        `Member ${member.user?.username} (${memberUserId}): ` + 
-        `Match with current user? ${isMatch}, ` + 
-        `Admin role? ${isAdminRole}`
-      );
-      
-      return isMatch && isAdminRole;
-    });
-    
-    console.log("Final isAdmin status:", adminStatus);
-    return adminStatus;
-  }, [unit, currentUserId]);
+const { user, isAdmin } = useAuth();
+const userIsAdmin = unit ? isAdmin(unitId!, unit) : false;
+
 
   if (isLoading) return <div className="text-center py-8">Loading...</div>;
 
@@ -211,7 +166,7 @@ const isAdmin = React.useMemo(() => {
           ) : (
             <h1 className="text-2xl font-bold">
               {unit.name}
-              {isAdmin && (
+              {userIsAdmin && (
                 <button
                   onClick={() => setEditingName(true)}
                   className="ml-2 text-gray-500 hover:text-gray-700 text-sm"
@@ -222,11 +177,10 @@ const isAdmin = React.useMemo(() => {
             </h1>
           )}
           
-          {isAdmin && (
+          {userIsAdmin && (
             <div className="flex space-x-3">
               <button
                 onClick={() => {console.log("Invite button clicked");
-                    console.log(isAdmin);
                     setIsInviteModalOpen(true);
                 }}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
@@ -273,7 +227,7 @@ const isAdmin = React.useMemo(() => {
                 >
                   Joined
                 </th>
-                {isAdmin && (
+                {userIsAdmin && (
                   <th
                     scope="col"
                     className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -302,7 +256,7 @@ const isAdmin = React.useMemo(() => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    {isAdmin && member.user?.id !== currentUserId ? (
+                    {userIsAdmin && member.user?.id !== user?.id ? (
                       <select
                         value={member.role}
                         onChange={(e) =>
@@ -322,9 +276,9 @@ const isAdmin = React.useMemo(() => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(member.createdAt).toLocaleDateString()}
                   </td>
-                  {isAdmin && (
+                  {userIsAdmin && (
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {member.user?.id !== currentUserId && (
+                      {member.user?.id !== user?.id && (
                         <button
                           onClick={() => handleRemoveMember(member.id)}
                           className="text-red-600 hover:text-red-900"

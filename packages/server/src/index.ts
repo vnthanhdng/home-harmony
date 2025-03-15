@@ -6,7 +6,6 @@ import unitRoutes from './routes/unitRoutes';
 import memberRoutes from './routes/memberRoutes';
 import invitationRoutes from './routes/invitationRoutes';
 import authRoutes from './routes/authRoutes';
-import testRoutes from './routes/testRoutes';
 
 
 // Load environment variables
@@ -30,7 +29,6 @@ app.get('/', (req, res) => {
 
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api/test', testRoutes);
 app.use('/api', unitRoutes);
 app.use('/api', memberRoutes);
 app.use('/api', invitationRoutes);

@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import {body, validationResult} from 'express-validator';
+import { authenticateUser } from '../middleware/auth.middleware';
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -203,5 +204,30 @@ router.post('/verify', async (req: Request, res: Response) => {
         return res.status(500).json({message: 'Server error during verification'});
     }
 });
-
+router.get('/me', authenticateUser, async (req: Request, res: Response) => {
+    try {
+      const userId = req.user.id;
+  
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          phone: true,
+          createdAt: true,
+          updatedAt: true,
+        }
+      });
+  
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+  
+      return res.status(200).json({ data: user });
+    } catch (error) {
+      console.error('Error fetching current user:', error);
+      return res.status(500).json({ message: 'Error fetching user data' });
+    }
+  }); 
 export default router;
