@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import unitService, { UnitMember } from "../../services/unitService";
 import InviteMemberModal from "./InviteMemberModal";
 import authService from "../../services/authService";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 const UnitDetails: React.FC = () => {
   const { unitId } = useParams<{ unitId: string }>();
